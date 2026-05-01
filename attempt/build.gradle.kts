@@ -15,7 +15,7 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     implementation("org.eclipse.lsp4j:org.eclipse.lsp4j:1.0.0")
-    //implementation("com.redhat.devtools.intellij:lsp4ij:0.19.3")
+    implementation("com.redhat.devtools.lsp4ij:0.14.0")
 }
 
 

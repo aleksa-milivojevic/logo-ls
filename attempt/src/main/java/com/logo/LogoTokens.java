@@ -2,7 +2,7 @@ package com.logo;
 
 import java.util.Set;
 
-public class LogoTypes {
+public class LogoTokens {
     public final Set<String> functions = Set.of(
             "forward", "back", "left", "right", "home", "setx", "sety", "setxy", "setpos", "setheading",
             "arc", "ellipse", "fd", "bk", "lt", "rt", "seth", "pos", "xcor", "ycor", "heading", "towards",
@@ -17,13 +17,7 @@ public class LogoTypes {
             "word", "litp", "list?", "arrayp", "array?", "numberp", "number?", "emptyp", "empty?",
             "equalp", "equal?", "notequalp", "notequal?", "beforep", "before?", "substringp", "substring?",
             "repeat", "for", "repcount", "if", "ifelse", "test", "iftrue", "iffalse", "wait", "bye",
-            "dotimes", "do.while", "while", "do.until", "until"
-    );
-    public final Set<String> procedureDefs = Set.of(
+            "dotimes", "do.while", "while", "do.until", "until", "make", "name", "localmake", "thing",
             "to", "define", "def", "end"
     );
-    public final Set<String> variableDefs = Set.of(
-            "make", "name", "localmake", "thing"
-    );
-    // procedureDefs & variableDefs count as keywords
 }
