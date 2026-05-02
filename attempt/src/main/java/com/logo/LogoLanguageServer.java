@@ -4,15 +4,14 @@ import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.services.*;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -40,50 +39,12 @@ public class LogoLanguageServer implements LanguageServer, LanguageClientAware {
 
         SemanticTokensWithRegistrationOptions semanticTokens = new SemanticTokensWithRegistrationOptions();
         semanticTokens.setFull(true);
-        semanticTokens.setLegend(new SemanticTokensLegend(Arrays.asList("keyword", "variable", "function", "number"), new ArrayList<>()));
+        semanticTokens.setLegend(new SemanticTokensLegend(Arrays.asList("keyword", "variable", "function", "number", "declaration"), new ArrayList<>()));
         initResult.getCapabilities().setSemanticTokensProvider(semanticTokens);
 
-        findDeclarations(Paths.get(URI.create(params.getRootUri())));
+        System.err.println(params.getRootPath());
 
         return CompletableFuture.supplyAsync(() -> initResult);
-    }
-
-    private void findDeclarations(Path rootURI) {
-
-        if (Files.isRegularFile(rootURI) && rootURI.endsWith(".lgo")) {
-
-            String content = null;
-            try {
-                content = Files.readString(rootURI);
-                String[] lines = content.split("\\r?\\n");
-                Map<String, LocationLink> map = new HashMap<>();
-
-                for (int lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-                    String line = lines[lineIndex];
-                    Matcher matcher = Pattern.compile("(?:to|define|def|make) [\":]?([a-zA-Z]+)|name [0-9]+ [\":]?([a-zA-Z]+)").matcher(line);
-
-                    while (matcher.find()) {
-                        LocationLink link = new LocationLink(
-                                rootURI.toString(),
-                                new Range(new Position(lineIndex, matcher.start()), new Position(lineIndex, matcher.end())),
-                                new Range(new Position(lineIndex, matcher.start()), new Position(lineIndex, matcher.end()))
-                        );
-                        String name = (matcher.group(1) != null) ? matcher.group(1) : matcher.group(2);
-                        map.put(name, link);
-                        textService.addDeclaration(rootURI.toString(), map);
-                    }
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        else if(Files.isDirectory(rootURI)) {
-            File dir = new File(rootURI.toString());
-            File[] files = dir.listFiles();
-            for (File file: files) {
-                findDeclarations(file.toPath());
-            }
-        }
     }
 
     @Override

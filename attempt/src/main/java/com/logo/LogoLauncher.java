@@ -12,11 +12,6 @@ import java.io.InputStreamReader;
 public class LogoLauncher {
     public static void main(String[] args) throws IOException {
 
-        BufferedReader r = new BufferedReader(
-                new InputStreamReader(System.in));
-        String s = r.readLine();
-        System.out.println(s);
-
         LogoLanguageServer server = new LogoLanguageServer();
 
         Launcher<LanguageClient> launcher = LSPLauncher.createServerLauncher(server, System.in, System.out);

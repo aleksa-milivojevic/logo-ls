@@ -70,6 +70,8 @@ public class LogoTextDocumentService implements TextDocumentService {
             return 2;
         else if (logoTokens.keywords.contains(token))
             return 0;
+        else if (declarationNames.contains(token))
+            return 4;
 
         return -1;
     }
@@ -77,13 +79,13 @@ public class LogoTextDocumentService implements TextDocumentService {
     @Override
     public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> declaration(DeclarationParams params) {
         try {
-            String content = Files.readString(Paths.get(params.getTextDocument().getUri()));
+            String content = Files.readString(Paths.get(URI.create(params.getTextDocument().getUri())));
             String[] lines = content.split("\\r?\\n");
             int lineIndex = params.getPosition().getLine();
             int charIndex = params.getPosition().getCharacter();
 
-            if (lineIndex < 0 || lineIndex > lines.length) return null;
-            if (charIndex < 0 || charIndex > lines[lineIndex].length()) return null;
+//            if (lineIndex < 0 || lineIndex > lines.length) return null;
+//            if (charIndex < 0 || charIndex > lines[lineIndex].length()) return null;
             int start = charIndex;
             while (start > 0 && lines[lineIndex].charAt(start) != ' ') start--;
             int end = charIndex;
@@ -103,23 +105,34 @@ public class LogoTextDocumentService implements TextDocumentService {
         }
     }
 
-    public void addDeclaration(String uri, Map<String, LocationLink> map) {
-        declarations.put(uri, map);
-        declarationNames.addAll(map.keySet());
-    }
-
     public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams params) {
         List<CompletionItem> list = new ArrayList<>();
+        int lineIndex = params.getPosition().getLine();
+        int charIndex = params.getPosition().getCharacter();
+        String line = "";
+        String trigger = "";
+        try {
+            List<String> text = Files.readAllLines(Paths.get(URI.create(params.getTextDocument().getUri())));
+            line = text.get(lineIndex);
+            int endIndex = charIndex;
+            while (line.charAt(endIndex) != ' ')
+                endIndex++;
+            trigger = line.substring(charIndex, endIndex);
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
         for (String token : declarationNames) {
-            if (token.contains(params.getContext().getTriggerCharacter()))
+            if (token.contains(trigger))
                 list.add(new CompletionItem(token));
         }
         for (String token : logoTokens.keywords) {
-            if (token.contains(params.getContext().getTriggerCharacter()))
+            if (token.contains(trigger))
                 list.add(new CompletionItem(token));
         }
         for (String token : logoTokens.functions) {
-            if (token.contains(params.getContext().getTriggerCharacter()))
+            if (token.contains(trigger))
                 list.add(new CompletionItem(token));
         }
 
@@ -130,14 +143,49 @@ public class LogoTextDocumentService implements TextDocumentService {
         return CompletableFuture.completedFuture(unresolved);
     }
 
+    public void findDeclarations(String doc) {
+        try {
+            List<String> lines = Files.readAllLines(Paths.get(URI.create(doc)));
+            Map<String, LocationLink> map = new HashMap<>();
+            int lineIndex = 0;
+            for (String line : lines) {
+                Matcher matcher = Pattern.compile("(?:to|define|def|make) ([\":]?[a-zA-Z]+)|name [0-9]+ ([\":]?[a-zA-Z]+)").matcher(line);
+
+                while (matcher.find()) {
+                    LocationLink link = new LocationLink(
+                            doc,
+                            new Range(new Position(lineIndex, matcher.start()), new Position(lineIndex, matcher.end())),
+                            new Range(new Position(lineIndex, matcher.start()), new Position(lineIndex, matcher.end()))
+                    );
+                    String name = (matcher.group(1) != null) ? matcher.group(1) : matcher.group(2);
+                    map.put(name, link);
+                    addDeclaration(doc, map);
+                }
+                lineIndex += 1;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    public void addDeclaration(String uri, Map<String, LocationLink> map) {
+        declarations.put(uri, map);
+        for (String key: map.keySet())
+            if (!declarationNames.contains(key))
+                declarationNames.add(key);
+    }
+
     @Override
     public void didOpen(DidOpenTextDocumentParams params) {
         openDocs.put(params.getTextDocument().getUri(), params.getTextDocument().getText());
+        findDeclarations(params.getTextDocument().getUri());
     }
 
     @Override
     public void didChange(DidChangeTextDocumentParams params) {
         openDocs.replace(params.getTextDocument().getUri(), params.getContentChanges().getFirst().getText());
+        findDeclarations(params.getTextDocument().getUri());
     }
 
     @Override
