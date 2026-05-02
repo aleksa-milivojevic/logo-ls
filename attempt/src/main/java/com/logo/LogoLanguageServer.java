@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 public class LogoLanguageServer implements LanguageServer, LanguageClientAware {
     private LanguageClient client;
     private final LogoTextDocumentService textService = new LogoTextDocumentService();
+    private final LogoWorkspaceService workspaceService = new LogoWorkspaceService();
     private int errorCode = 1;
 
     LogoLanguageServer() {
@@ -42,8 +43,6 @@ public class LogoLanguageServer implements LanguageServer, LanguageClientAware {
         semanticTokens.setLegend(new SemanticTokensLegend(Arrays.asList("keyword", "variable", "function", "number", "declaration"), new ArrayList<>()));
         initResult.getCapabilities().setSemanticTokensProvider(semanticTokens);
 
-        System.err.println(params.getRootPath());
-
         return CompletableFuture.supplyAsync(() -> initResult);
     }
 
@@ -65,7 +64,7 @@ public class LogoLanguageServer implements LanguageServer, LanguageClientAware {
 
     @Override
     public WorkspaceService getWorkspaceService() {
-        return null;
+        return workspaceService;
     }
 
     @Override
