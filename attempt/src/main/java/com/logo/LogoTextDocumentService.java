@@ -108,6 +108,28 @@ public class LogoTextDocumentService implements TextDocumentService {
         declarationNames.addAll(map.keySet());
     }
 
+    public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams params) {
+        List<CompletionItem> list = new ArrayList<>();
+        for (String token : declarationNames) {
+            if (token.contains(params.getContext().getTriggerCharacter()))
+                list.add(new CompletionItem(token));
+        }
+        for (String token : logoTokens.keywords) {
+            if (token.contains(params.getContext().getTriggerCharacter()))
+                list.add(new CompletionItem(token));
+        }
+        for (String token : logoTokens.functions) {
+            if (token.contains(params.getContext().getTriggerCharacter()))
+                list.add(new CompletionItem(token));
+        }
+
+        return CompletableFuture.completedFuture(Either.forLeft(list));
+    }
+
+    public CompletableFuture<CompletionItem> resolveCompletionItem(CompletionItem unresolved) {
+        return CompletableFuture.completedFuture(unresolved);
+    }
+
     @Override
     public void didOpen(DidOpenTextDocumentParams params) {
         openDocs.put(params.getTextDocument().getUri(), params.getTextDocument().getText());
