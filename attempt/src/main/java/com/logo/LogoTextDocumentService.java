@@ -78,62 +78,64 @@ public class LogoTextDocumentService implements TextDocumentService {
 
     @Override
     public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> declaration(DeclarationParams params) {
-        try {
-            String content = Files.readString(Paths.get(URI.create(params.getTextDocument().getUri())));
-            String[] lines = content.split("\\r?\\n");
-            int lineIndex = params.getPosition().getLine();
-            int charIndex = params.getPosition().getCharacter();
+        String content = openDocs.get(params.getTextDocument().getUri());
+        String[] lines = content.split("\\r?\\n");
+        String line = lines[params.getPosition().getLine()];
+        int charIndex = params.getPosition().getCharacter();
 
-//            if (lineIndex < 0 || lineIndex > lines.length) return null;
-//            if (charIndex < 0 || charIndex > lines[lineIndex].length()) return null;
-            int start = charIndex;
-            while (start > 0 && lines[lineIndex].charAt(start) != ' ') start--;
-            int end = charIndex;
-            while (end < lines[lineIndex].length() && lines[lineIndex].charAt(end) != ' ') end++;
-            String token = lines[lineIndex].substring(start, end);
+        int start = charIndex;
+        while (start > 0 && line.charAt(start - 1) != ' ') start--;
+        int end = charIndex;
+        while (end < line.length() && line.charAt(end) != ' ') end++;
+        String token = line.substring(start, end);
 
-            LocationLink link = new LocationLink();
-            for (String key: declarations.keySet()) {
-                 link = declarations.get(key).get(token);
-            }
-            List<LocationLink> list = new ArrayList<>();
-            list.add(link);
-            return CompletableFuture.completedFuture(Either.forRight(list));
+        List<LocationLink> list = new ArrayList<>();
+        LocationLink link;
+        for (Map<String, LocationLink> value: declarations.values()) {
+             link = value.get(token);
+             if (link != null)
+                list.add(link);
         }
-        catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return CompletableFuture.completedFuture(Either.forRight(list));
     }
 
     public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams params) {
         List<CompletionItem> list = new ArrayList<>();
         int lineIndex = params.getPosition().getLine();
         int charIndex = params.getPosition().getCharacter();
-        String line = "";
-        String trigger = "";
-        try {
-            List<String> text = Files.readAllLines(Paths.get(URI.create(params.getTextDocument().getUri())));
-            line = text.get(lineIndex);
-            int endIndex = charIndex;
-            while (line.charAt(endIndex) != ' ')
-                endIndex++;
-            trigger = line.substring(charIndex, endIndex);
-        }
-        catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+
+        //List<String> text = Files.readAllLines(Paths.get(URI.create(params.getTextDocument().getUri())));
+        String content = openDocs.get(params.getTextDocument().getUri());
+        String[] text = content.split("\\r?\\n");
+        String line = text[lineIndex];
+        int endIndex = charIndex;
+        while (endIndex < line.length() && line.charAt(endIndex) != ' ')
+            endIndex++;
+        String trigger = line.substring(charIndex, endIndex);
 
         for (String token : declarationNames) {
-            if (token.contains(trigger))
-                list.add(new CompletionItem(token));
+            if (token.contains(trigger)) {
+                CompletionItem ci = new CompletionItem();
+                ci.setLabel(token);
+                ci.setKind(token.startsWith("\"") || token.startsWith(":") ? CompletionItemKind.Variable : CompletionItemKind.Function);
+                list.add(ci);
+            }
         }
         for (String token : logoTokens.keywords) {
-            if (token.contains(trigger))
-                list.add(new CompletionItem(token));
+            if (token.contains(trigger)) {
+                CompletionItem ci = new CompletionItem();
+                ci.setLabel(token);
+                ci.setKind(CompletionItemKind.Keyword);
+                list.add(ci);
+            }
         }
         for (String token : logoTokens.functions) {
-            if (token.contains(trigger))
-                list.add(new CompletionItem(token));
+            if (token.contains(trigger)) {
+                CompletionItem ci = new CompletionItem();
+                ci.setLabel(token);
+                ci.setKind(CompletionItemKind.Function);
+                list.add(ci);
+            }
         }
 
         return CompletableFuture.completedFuture(Either.forLeft(list));

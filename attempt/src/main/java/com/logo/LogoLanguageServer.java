@@ -33,6 +33,7 @@ public class LogoLanguageServer implements LanguageServer, LanguageClientAware {
         initResult.getCapabilities().setTextDocumentSync(TextDocumentSyncKind.Full);
 
         CompletionOptions completionOptions = new CompletionOptions();
+        completionOptions.setResolveProvider(true);
         initResult.getCapabilities().setCompletionProvider(completionOptions);
 
         DeclarationRegistrationOptions declarationOptions = new DeclarationRegistrationOptions();
