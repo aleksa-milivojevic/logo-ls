@@ -154,9 +154,10 @@ public class LogoTextDocumentService implements TextDocumentService {
                 Matcher matcher = Pattern.compile("(?:to|define|def|make) ([\":]?[a-zA-Z]+)|name [0-9]+ ([\":]?[a-zA-Z]+)").matcher(line);
 
                 while (matcher.find()) {
+                    int targetRangeStart = matcher.group().indexOf((matcher.group(1) != null) ? matcher.group(1) : matcher.group(2));
                     LocationLink link = new LocationLink(
                             doc,
-                            new Range(new Position(lineIndex, matcher.start()), new Position(lineIndex, matcher.end())),
+                            new Range(new Position(lineIndex, targetRangeStart), new Position(lineIndex, matcher.end())),
                             new Range(new Position(lineIndex, matcher.start()), new Position(lineIndex, matcher.end()))
                     );
                     String name = (matcher.group(1) != null) ? matcher.group(1) : matcher.group(2);
